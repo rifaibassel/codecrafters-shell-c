@@ -5,10 +5,13 @@
 int main(int argc, char *argv[]) {
   // Flush after every printf
   setbuf(stdout, NULL);
+
   char input[100];
-  // Uncomment this block to pass the first stage
+
   printf("$ ");
-  scanf("%s", input);
+  fgets(input, sizeof(input), stdin);
+  input[strlen(input) - 1] = '\0';
+
   printf("%s: command not found", input);
 
   return 0;
