@@ -7,12 +7,13 @@ int main(int argc, char *argv[]) {
   setbuf(stdout, NULL);
 
   char input[100];
+  do {
+    printf("$ ");
+    fgets(input, sizeof(input), stdin);
+    input[strlen(input) - 1] = '\0';
 
-  printf("$ ");
-  fgets(input, sizeof(input), stdin);
-  input[strlen(input) - 1] = '\0';
+    printf("%s: command not found\n", input);
 
-  printf("%s: command not found", input);
-
+  } while (1);
   return 0;
 }
