@@ -8,6 +8,8 @@ int main(int argc, char *argv[]) {
 
   char input[100];
   char exit_str[100] = "exit 0";
+  char echo_str[100] = "echo";
+
   do {
     printf("$ ");
     fgets(input, sizeof(input), stdin);
@@ -15,6 +17,21 @@ int main(int argc, char *argv[]) {
     if (strcmp(input, exit_str) == 0) {
       exit(0);
     }
+
+    if (strncmp(input, echo_str, 4) == 0) {
+      char *token = strtok(input, " ");
+      token = strtok(NULL, " ");
+      if (token == NULL) {
+        printf("$");
+      }
+      while (token != NULL && strcmp(token, "(null)") != 0) {
+        printf("%s ", token);
+        token = strtok(NULL, " ");
+      }
+      printf("\n");
+      continue;
+    }
+
     printf("%s: command not found\n", input);
 
   } while (1);
