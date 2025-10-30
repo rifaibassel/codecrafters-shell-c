@@ -43,6 +43,10 @@ int main(int argc, char *argv[]) {
         if (strcmp(token, echo_str) == 0 || strcmp(token, exit_str) == 0 ||
             strcmp(token, type_str) == 0) {
           printf("%s is a shell builtin\n", token);
+          token = strtok(NULL, " ");
+        } else {
+          printf("%s: command not found\n", token);
+          token = strtok(NULL, " ");
         }
       }
       printf("\n");
