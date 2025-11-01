@@ -37,7 +37,8 @@ int main(int argc, char *argv[]) {
     }
 
     if (strncmp(input, type_str, 4) == 0) {
-      // handle_type();
+      handle_type(input);
+      continue;
     }
 
     printf("%s: command not found\n", input);

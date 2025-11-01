@@ -1,4 +1,5 @@
 #include "my_funcs.h"
+#include <string.h>
 
 void handle_echo(char *input) {
 
@@ -28,6 +29,21 @@ void handle_exit(char *input) {
       }
     } else {
       exit(0);
+    }
+  }
+}
+
+void handle_type(char *input) {
+  input = strtok(input, " ");
+  if (input != NULL) {
+
+    input = strtok(NULL, " ");
+    if (strcmp(input, "echo") == 0 || strcmp(input, "exit") == 0 ||
+        strcmp(input, "type") == 0) {
+      printf("%s is a shell builtin\n", input);
+    } else {
+      // check_if_binary(input);
+      printf("%s: not found\n", input);
     }
   }
 }

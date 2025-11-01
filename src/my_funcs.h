@@ -9,5 +9,5 @@
 
 void handle_exit(char *input);
 void handle_echo(char *input);
-char handle_type();
+void handle_type(char *input);
 #endif // !MY_FUNCS_H
