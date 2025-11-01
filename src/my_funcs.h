@@ -7,7 +7,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-void handle_exit();
-void handle_echo(char *str_to_echo);
+void handle_exit(char *input);
+void handle_echo(char *input);
 char handle_type();
 #endif // !MY_FUNCS_H

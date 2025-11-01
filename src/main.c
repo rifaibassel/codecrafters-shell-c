@@ -27,7 +27,8 @@ int main(int argc, char *argv[]) {
     }
 
     if (strncmp(input, exit_str, 4) == 0) {
-      // handle_exit();
+      handle_exit(input);
+      continue;
     }
 
     if (strncmp(input, echo_str, 4) == 0) {
