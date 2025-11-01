@@ -153,6 +153,30 @@ src/main.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/shell.dir/build.make CMakeFiles/shell.dir/src/main.c.s
 .PHONY : src/main.c.s
 
+src/my_funcs.o: src/my_funcs.c.o
+.PHONY : src/my_funcs.o
+
+# target to build an object file
+src/my_funcs.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shell.dir/build.make CMakeFiles/shell.dir/src/my_funcs.c.o
+.PHONY : src/my_funcs.c.o
+
+src/my_funcs.i: src/my_funcs.c.i
+.PHONY : src/my_funcs.i
+
+# target to preprocess a source file
+src/my_funcs.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shell.dir/build.make CMakeFiles/shell.dir/src/my_funcs.c.i
+.PHONY : src/my_funcs.c.i
+
+src/my_funcs.s: src/my_funcs.c.s
+.PHONY : src/my_funcs.s
+
+# target to generate assembly for a file
+src/my_funcs.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shell.dir/build.make CMakeFiles/shell.dir/src/my_funcs.c.s
+.PHONY : src/my_funcs.c.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -165,6 +189,9 @@ help:
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/my_funcs.o"
+	@echo "... src/my_funcs.i"
+	@echo "... src/my_funcs.s"
 .PHONY : help
 
 

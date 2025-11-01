@@ -9,6 +9,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/ahmad/codecrafters-shell-c/src/main.c" "CMakeFiles/shell.dir/src/main.c.o" "gcc" "CMakeFiles/shell.dir/src/main.c.o.d"
+  "/home/ahmad/codecrafters-shell-c/src/my_funcs.c" "CMakeFiles/shell.dir/src/my_funcs.c.o" "gcc" "CMakeFiles/shell.dir/src/my_funcs.c.o.d"
   "" "shell" "gcc" "CMakeFiles/shell.dir/link.d"
   )
 

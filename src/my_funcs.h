@@ -10,4 +10,5 @@
 void handle_exit(char *input);
 void handle_echo(char *input);
 void handle_type(char *input);
+char *find_binary(char *input);
 #endif // !MY_FUNCS_H

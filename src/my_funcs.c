@@ -42,8 +42,42 @@ void handle_type(char *input) {
         strcmp(input, "type") == 0) {
       printf("%s is a shell builtin\n", input);
     } else {
-      // check_if_binary(input);
-      printf("%s: not found\n", input);
+      printf("%s", find_binary(input));
     }
   }
+}
+
+char *find_binary(char *input) {
+  char *path_env = getenv("PATH");
+  char *path_env_str = malloc((strlen(path_env) + 1) * sizeof(char *));
+  strcpy(path_env_str, path_env);
+
+  path_env_str = strtok(path_env_str, ": ");
+
+  while (path_env_str != NULL) {
+    char *paths_to_open[] = {path_env_str, NULL};
+    FTS *handle = fts_open(paths_to_open, FTS_PHYSICAL, NULL);
+    if (handle == NULL) {
+      perror(path_env_str);
+      path_env_str = strtok(NULL, ": ");
+      continue;
+    }
+    FTSENT *fts_p = fts_read(handle);
+    FTSENT *child = fts_children(handle, FTS_NAMEONLY);
+    while (child) {
+      if (strcmp(child->fts_accpath, input) == 0) {
+        char *bin_name = child->fts_accpath;
+        char *bin_dir_path = strcat(child->fts_path, "/");
+        char *bin_path = strcat(bin_dir_path, bin_name);
+        char *return_str =
+            strcat(strcat(strcat(bin_name, " is "), bin_path), "\n");
+        return return_str;
+      }
+      child = child->fts_link;
+    }
+    fts_close(handle);
+    path_env_str = strtok(NULL, ": ");
+  }
+
+  return strcat(input, ": not found\n");
 }
