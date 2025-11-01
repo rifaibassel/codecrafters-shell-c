@@ -1,6 +1,10 @@
+#include "my_funcs.h"
+#include <fts.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 int main(int argc, char *argv[]) {
   // Flush after every printf
@@ -13,52 +17,26 @@ int main(int argc, char *argv[]) {
 
   do {
     printf("$ ");
+
     fgets(input, sizeof(input), stdin);
 
-    input[strlen(input) - 1] = '\0';
+    if (strcmp(input, "") != 0) {
+      input[strlen(input) - 1] = '\0';
+    } else {
+      return 0;
+    }
 
     if (strncmp(input, exit_str, 4) == 0) {
-      char *token = strtok(input, " ");
-      token = strtok(NULL, " ");
-
-      if (strcmp(token, "0") == 0) {
-        exit(0);
-      } else if (strcmp(token, "1")) {
-        exit(1);
-      }
+      // handle_exit();
     }
 
     if (strncmp(input, echo_str, 4) == 0) {
-      char *token = strtok(input, " ");
-      token = strtok(NULL, " ");
-      if (token == NULL) {
-        printf("$");
-      }
-      while (token != NULL && strcmp(token, "(null)") != 0) {
-        printf("%s ", token);
-        token = strtok(NULL, " ");
-      }
-      printf("\n");
+      handle_echo(input);
       continue;
     }
 
     if (strncmp(input, type_str, 4) == 0) {
-      char *token = strtok(input, " ");
-      token = strtok(NULL, " ");
-      if (token == NULL) {
-        printf("$");
-      }
-      while (token != NULL && strcmp(token, "(null)") != 0) {
-        if (strcmp(token, echo_str) == 0 || strncmp(token, exit_str, 4) == 0 ||
-            strcmp(token, type_str) == 0) {
-          printf("%s is a shell builtin\n", token);
-          token = strtok(NULL, " ");
-        } else {
-          printf("%s: not found\n", token);
-          token = strtok(NULL, " ");
-        }
-      }
-      continue;
+      // handle_type();
     }
 
     printf("%s: command not found\n", input);
