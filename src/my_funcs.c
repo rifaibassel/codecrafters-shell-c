@@ -1,5 +1,7 @@
 #include "my_funcs.h"
+#include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 void handle_echo(char *input) {
 
@@ -36,30 +38,33 @@ void handle_exit(char *input) {
 void handle_type(char *input) {
   input = strtok(input, " ");
   if (input != NULL) {
-
     input = strtok(NULL, " ");
-    if (strcmp(input, "echo") == 0 || strcmp(input, "exit") == 0 ||
-        strcmp(input, "type") == 0) {
-      printf("%s is a shell builtin\n", input);
-    } else {
-      printf("%s", find_binary(input));
+    if (input) {
+      if (strcmp(input, "echo") == 0 || strcmp(input, "exit") == 0 ||
+          strcmp(input, "type") == 0) {
+        printf("%s is a shell builtin\n", input);
+      } else {
+        char *found = find_binary(input);
+        printf("%s", found);
+        free(found);
+      }
     }
   }
 }
 
 char *find_binary(char *input) {
   char *path_env = getenv("PATH");
-  char *path_env_str = malloc((strlen(path_env) + 1) * sizeof(char *));
+  char *path_env_str = malloc((strlen(path_env) + 1));
   strcpy(path_env_str, path_env);
 
-  path_env_str = strtok(path_env_str, ": ");
+  char *current_path = strtok(path_env_str, ": ");
 
-  while (path_env_str != NULL) {
-    char *paths_to_open[] = {path_env_str, NULL};
+  while (current_path != NULL) {
+    char *paths_to_open[] = {current_path, NULL};
     FTS *handle = fts_open(paths_to_open, FTS_PHYSICAL, NULL);
     if (handle == NULL) {
-      perror(path_env_str);
-      path_env_str = strtok(NULL, ": ");
+      perror(current_path);
+      current_path = strtok(NULL, ": ");
       continue;
     }
     FTSENT *fts_p = fts_read(handle);
@@ -67,17 +72,27 @@ char *find_binary(char *input) {
     while (child) {
       if (strcmp(child->fts_accpath, input) == 0) {
         char *bin_name = child->fts_accpath;
-        char *bin_dir_path = strcat(child->fts_path, "/");
-        char *bin_path = strcat(bin_dir_path, bin_name);
-        char *return_str =
-            strcat(strcat(strcat(bin_name, " is "), bin_path), "\n");
-        return return_str;
+        char *return_str = malloc(strlen(input) + strlen(child->fts_path) +
+                                  strlen(child->fts_accpath) + 10);
+        char *path =
+            malloc(strlen(child->fts_path) + strlen(child->fts_accpath) + 1);
+        sprintf(return_str, "%s is %s/%s\n", input, child->fts_path,
+                child->fts_accpath);
+        sprintf(path, "%s/%s", child->fts_path, child->fts_accpath);
+        if (access(path, X_OK) == 0) {
+          fts_close(handle);
+          free(path_env_str);
+          return return_str;
+        }
       }
       child = child->fts_link;
     }
     fts_close(handle);
-    path_env_str = strtok(NULL, ": ");
+    current_path = strtok(NULL, ": ");
   }
+  free(path_env_str);
 
-  return strcat(input, ": not found\n");
+  char *not_found_str = malloc(strlen(input) + strlen("%s: not found\n"));
+  sprintf(not_found_str, "%s: not found\n", input);
+  return not_found_str;
 }
