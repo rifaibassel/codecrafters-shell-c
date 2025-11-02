@@ -48,6 +48,8 @@ void handle_type(char *input) {
         if (found != NULL) {
 
           printf("%s is %s\n", input, found);
+        } else {
+          printf("%s: not found\n", input);
         }
         free(found);
       }
@@ -75,13 +77,54 @@ char *find_binary(const char *command) {
   return NULL;
 }
 
-// Contract: void execute_binary(char *input)
-// Purpose: parse input, find path, fork-and-exec, print error if needed
 void execute_binary(char *input) {
-  // 1. Parse input → argv[]
-  // 2. Find full path using find_binary
-  // 3. If not found, print error
-  // 4. Else, fork
-  //    - in child: execv(path, argv)
-  //    - in parent: wait for child
+  char *argv[MAX_ARGS];
+  parse_input(input, argv, MAX_ARGS);
+  if (argv[0] == NULL) {
+    return;
+  }
+  char *path = find_binary(argv[0]);
+
+  if (!path) {
+    printf("%s: command not found\n", argv[0]);
+    return;
+  }
+  pid_t pid = fork();
+  if (pid == 0) {
+    execv(path, argv);
+    perror("execv");
+    exit(1);
+  } else if (pid > 0) {
+    int status;
+    waitpid(pid, &status, 0);
+  } else {
+    perror("fork");
+  }
+  free(path);
+}
+
+void parse_input(const char *input, char **argv, int max_args) {
+  int in_quote = 0;
+  int arg_idx = 0;
+  char token[256] = {0};
+  int t = 0;
+  for (int i = 0; input[i] != '\0'; ++i) {
+    char c = input[i];
+    if (c == '"') {
+      in_quote = !in_quote;
+    } else if (c == ' ' && !in_quote) {
+      if (t > 0) {
+        token[t] = '\0';
+        argv[arg_idx++] = strdup(token);
+        t = 0;
+      }
+    } else {
+      token[t++] = c;
+    }
+  }
+  if (t > 0) {
+    token[t] = '\0';
+    argv[arg_idx++] = strdup(token);
+  }
+  argv[arg_idx] = NULL;
 }
