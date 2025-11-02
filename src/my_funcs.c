@@ -45,54 +45,43 @@ void handle_type(char *input) {
         printf("%s is a shell builtin\n", input);
       } else {
         char *found = find_binary(input);
-        printf("%s", found);
+        if (found != NULL) {
+
+          printf("%s is %s\n", input, found);
+        }
         free(found);
       }
     }
   }
 }
 
-char *find_binary(char *input) {
-  char *path_env = getenv("PATH");
-  char *path_env_str = malloc((strlen(path_env) + 1));
-  strcpy(path_env_str, path_env);
-
-  char *current_path = strtok(path_env_str, ": ");
-
-  while (current_path != NULL) {
-    char *paths_to_open[] = {current_path, NULL};
-    FTS *handle = fts_open(paths_to_open, FTS_PHYSICAL, NULL);
-    if (handle == NULL) {
-      perror(current_path);
-      current_path = strtok(NULL, ": ");
-      continue;
+char *find_binary(const char *command) {
+  const char *path_env = getenv("PATH");
+  if (!path_env)
+    return NULL;
+  char *path_copy = strdup(path_env);
+  char *dir = strtok(path_copy, ":");
+  while (dir) {
+    char candidate[512]; // More robust: dynamic alloc
+    snprintf(candidate, sizeof(candidate), "%s/%s", dir, command);
+    if (access(candidate, X_OK) == 0) {
+      char *result = strdup(candidate);
+      free(path_copy);
+      return result;
     }
-    FTSENT *fts_p = fts_read(handle);
-    FTSENT *child = fts_children(handle, FTS_NAMEONLY);
-    while (child) {
-      if (strcmp(child->fts_accpath, input) == 0) {
-        char *bin_name = child->fts_accpath;
-        char *return_str = malloc(strlen(input) + strlen(child->fts_path) +
-                                  strlen(child->fts_accpath) + 10);
-        char *path =
-            malloc(strlen(child->fts_path) + strlen(child->fts_accpath) + 1);
-        sprintf(return_str, "%s is %s/%s\n", input, child->fts_path,
-                child->fts_accpath);
-        sprintf(path, "%s/%s", child->fts_path, child->fts_accpath);
-        if (access(path, X_OK) == 0) {
-          fts_close(handle);
-          free(path_env_str);
-          return return_str;
-        }
-      }
-      child = child->fts_link;
-    }
-    fts_close(handle);
-    current_path = strtok(NULL, ": ");
+    dir = strtok(NULL, ":");
   }
-  free(path_env_str);
+  free(path_copy);
+  return NULL;
+}
 
-  char *not_found_str = malloc(strlen(input) + strlen("%s: not found\n"));
-  sprintf(not_found_str, "%s: not found\n", input);
-  return not_found_str;
+// Contract: void execute_binary(char *input)
+// Purpose: parse input, find path, fork-and-exec, print error if needed
+void execute_binary(char *input) {
+  // 1. Parse input → argv[]
+  // 2. Find full path using find_binary
+  // 3. If not found, print error
+  // 4. Else, fork
+  //    - in child: execv(path, argv)
+  //    - in parent: wait for child
 }
