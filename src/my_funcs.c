@@ -41,7 +41,7 @@ void handle_type(char *input) {
     input = strtok(NULL, " ");
     if (input) {
       if (strcmp(input, "echo") == 0 || strcmp(input, "exit") == 0 ||
-          strcmp(input, "type") == 0) {
+          strcmp(input, "type") == 0 || strcmp(input, "pwd") == 0) {
         printf("%s is a shell builtin\n", input);
       } else {
         char *found = find_binary(input);
@@ -127,4 +127,9 @@ void parse_input(const char *input, char **argv, int max_args) {
     argv[arg_idx++] = strdup(token);
   }
   argv[arg_idx] = NULL;
+}
+
+void handle_pwd() {
+  const char *pwd_env = getenv("PWD");
+  printf("%s\n", pwd_env);
 }

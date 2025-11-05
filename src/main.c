@@ -1,4 +1,5 @@
 #include "my_funcs.h"
+#include <string.h>
 
 int main(int argc, char *argv[]) {
   // Flush after every printf
@@ -8,6 +9,7 @@ int main(int argc, char *argv[]) {
   char exit_str[100] = "exit";
   char echo_str[100] = "echo";
   char type_str[100] = "type";
+  char pwd_str[100] = "pwd";
 
   do {
     printf("$ ");
@@ -27,6 +29,10 @@ int main(int argc, char *argv[]) {
 
     if (strncmp(input, echo_str, 4) == 0) {
       handle_echo(input);
+      continue;
+    }
+    if (strcmp(input, pwd_str) == 0) {
+      handle_pwd();
       continue;
     }
 
