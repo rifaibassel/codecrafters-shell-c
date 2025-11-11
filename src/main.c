@@ -11,9 +11,10 @@ int main(int argc, char *argv[]) {
   char type_str[100] = "type";
   char pwd_str[100] = "pwd";
   char cd_str[100] = "cd";
-  char *path = malloc(strlen(input) * sizeof(char));
 
   do {
+
+    setbuf(stdin, NULL);
     printf("$ ");
 
     fgets(input, sizeof(input), stdin);
@@ -21,7 +22,7 @@ int main(int argc, char *argv[]) {
     if (strcmp(input, "") != 0) {
       input[strlen(input) - 1] = '\0';
     } else {
-      return 0;
+      continue;
     }
 
     if (strncmp(input, exit_str, 4) == 0) {
@@ -39,10 +40,11 @@ int main(int argc, char *argv[]) {
     }
 
     if (strncmp(input, cd_str, 2) == 0) {
+
+      char *path = malloc(strlen(input) * sizeof(char));
       path = strcpy(path, input);
       path = strtok(path, " ");
       path = strtok(NULL, " ");
-      printf("\n%s\n", path);
       handle_abs_cd(path);
       continue;
     }
@@ -58,6 +60,6 @@ int main(int argc, char *argv[]) {
     printf("%s: not found", input);
 
   } while (1);
-  free(path);
+
   return 0;
 }

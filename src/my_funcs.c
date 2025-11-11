@@ -134,13 +134,15 @@ void handle_pwd() {
   printf("%s\n", pwd_env);
 }
 
-void handle_abs_cd(const char *path) {
+void handle_abs_cd(char *path) {
   if (path == NULL || strcmp(path, "") == 0) {
     const char *home_env = getenv("HOME");
     if (home_env != NULL) {
       chdir(home_env);
+      setenv("PWD", home_env, 1);
       return;
     }
+
     return;
   }
   if (chdir(path) != -1) {
@@ -149,5 +151,6 @@ void handle_abs_cd(const char *path) {
   }
 
   printf("cd: %s: No such file or directory\n", path);
+
   return;
 }
