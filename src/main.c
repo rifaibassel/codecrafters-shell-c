@@ -10,6 +10,8 @@ int main(int argc, char *argv[]) {
   char echo_str[100] = "echo";
   char type_str[100] = "type";
   char pwd_str[100] = "pwd";
+  char cd_str[100] = "cd";
+  char *path = malloc(strlen(input) * sizeof(char));
 
   do {
     printf("$ ");
@@ -36,6 +38,15 @@ int main(int argc, char *argv[]) {
       continue;
     }
 
+    if (strncmp(input, cd_str, 2) == 0) {
+      path = strcpy(path, input);
+      path = strtok(path, " ");
+      path = strtok(NULL, " ");
+      printf("\n%s\n", path);
+      handle_abs_cd(path);
+      continue;
+    }
+
     if (strncmp(input, type_str, 4) == 0) {
       handle_type(input);
       continue;
@@ -47,5 +58,6 @@ int main(int argc, char *argv[]) {
     printf("%s: not found", input);
 
   } while (1);
+  free(path);
   return 0;
 }

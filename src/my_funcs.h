@@ -16,4 +16,5 @@ char *find_binary(const char *command);
 void execute_binary(char *input);
 void handle_pwd();
 void parse_input(const char *input, char **argv, int max_args);
+void handle_abs_cd(const char *path);
 #endif // !MY_FUNCS_H

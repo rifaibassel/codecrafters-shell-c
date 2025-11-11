@@ -133,3 +133,21 @@ void handle_pwd() {
   const char *pwd_env = getenv("PWD");
   printf("%s\n", pwd_env);
 }
+
+void handle_abs_cd(const char *path) {
+  if (path == NULL || strcmp(path, "") == 0) {
+    const char *home_env = getenv("HOME");
+    if (home_env != NULL) {
+      chdir(home_env);
+      return;
+    }
+    return;
+  }
+  if (chdir(path) != -1) {
+    setenv("PWD", path, 1);
+    return;
+  }
+
+  printf("cd: %s: No such file or directory\n", path);
+  return;
+}
