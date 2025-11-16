@@ -154,7 +154,7 @@ void handle_pwd() {
 
 void handle_cd(char *path) {
   char cwd[PATH_MAX];
-  if (path == NULL || strcmp(path, "") == 0) {
+  if (path == NULL || strcmp(path, "") == 0 || strcmp(path, "~") == 0) {
     const char *home_env = getenv("HOME");
     if (!home_env) {
       return;
