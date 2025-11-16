@@ -2,6 +2,7 @@
 #define MY_FUNCS_H
 #define MAX_ARGS 64
 
+#include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,5 +17,6 @@ char *find_binary(const char *command);
 void execute_binary(char *input);
 void handle_pwd();
 void parse_input(const char *input, char **argv, int max_args);
-void handle_abs_cd(char *path);
+void handle_cd(char *path);
+int is_cmd(const char *input, const char *cmd);
 #endif // !MY_FUNCS_H

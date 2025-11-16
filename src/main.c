@@ -2,62 +2,52 @@
 #include <string.h>
 
 int main(int argc, char *argv[]) {
-  // Flush after every printf
   setbuf(stdout, NULL);
 
   char input[100];
-  char exit_str[100] = "exit";
-  char echo_str[100] = "echo";
-  char type_str[100] = "type";
-  char pwd_str[100] = "pwd";
-  char cd_str[100] = "cd";
 
   do {
-
-    setbuf(stdin, NULL);
     printf("$ ");
+    if (!fgets(input, sizeof(input), stdin)) {
+      break;
+    }
 
-    fgets(input, sizeof(input), stdin);
-
-    if (strcmp(input, "") != 0) {
-      input[strlen(input) - 1] = '\0';
-    } else {
+    int len = strlen(input);
+    if (len > 0 && input[len - 1] == '\n') {
+      input[len - 1] = '\0';
+    }
+    if (input[0] == '\0') {
       continue;
     }
 
-    if (strncmp(input, exit_str, 4) == 0) {
+    if (is_cmd(input, "exit")) {
       handle_exit(input);
       continue;
     }
 
-    if (strncmp(input, echo_str, 4) == 0) {
+    if (is_cmd(input, "echo")) {
       handle_echo(input);
       continue;
     }
-    if (strcmp(input, pwd_str) == 0) {
+    if (is_cmd(input, "pwd")) {
       handle_pwd();
       continue;
     }
 
-    if (strncmp(input, cd_str, 2) == 0) {
-
-      char *path = malloc(strlen(input) * sizeof(char));
-      path = strcpy(path, input);
-      path = strtok(path, " ");
-      path = strtok(NULL, " ");
-      handle_abs_cd(path);
+    if (is_cmd(input, "cd")) {
+      char *cmd = strtok(input, " ");
+      char *path = strtok(NULL, " ");
+      handle_cd(path);
       continue;
     }
 
-    if (strncmp(input, type_str, 4) == 0) {
+    if (is_cmd(input, "type")) {
       handle_type(input);
       continue;
     } else {
       execute_binary(input);
       continue;
     }
-
-    printf("%s: not found", input);
 
   } while (1);
 

@@ -1,7 +1,15 @@
 #include "my_funcs.h"
+#include <linux/limits.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+
+void free_argv(char **argv) {
+  for (int i = 0; argv[i] != NULL; i++) {
+    free(argv[i]);
+  }
+}
 
 void handle_echo(char *input) {
 
@@ -41,7 +49,8 @@ void handle_type(char *input) {
     input = strtok(NULL, " ");
     if (input) {
       if (strcmp(input, "echo") == 0 || strcmp(input, "exit") == 0 ||
-          strcmp(input, "type") == 0 || strcmp(input, "pwd") == 0) {
+          strcmp(input, "type") == 0 || strcmp(input, "pwd") == 0 ||
+          strcmp(input, "cd") == 0) {
         printf("%s is a shell builtin\n", input);
       } else {
         char *found = find_binary(input);
@@ -64,7 +73,7 @@ char *find_binary(const char *command) {
   char *path_copy = strdup(path_env);
   char *dir = strtok(path_copy, ":");
   while (dir) {
-    char candidate[512]; // More robust: dynamic alloc
+    char candidate[512];
     snprintf(candidate, sizeof(candidate), "%s/%s", dir, command);
     if (access(candidate, X_OK) == 0) {
       char *result = strdup(candidate);
@@ -87,6 +96,7 @@ void execute_binary(char *input) {
 
   if (!path) {
     printf("%s: command not found\n", argv[0]);
+    free_argv(argv);
     return;
   }
   pid_t pid = fork();
@@ -97,7 +107,9 @@ void execute_binary(char *input) {
   } else if (pid > 0) {
     int status;
     waitpid(pid, &status, 0);
+    free_argv(argv);
   } else {
+    free_argv(argv);
     perror("fork");
   }
   free(path);
@@ -115,42 +127,56 @@ void parse_input(const char *input, char **argv, int max_args) {
     } else if (c == ' ' && !in_quote) {
       if (t > 0) {
         token[t] = '\0';
-        argv[arg_idx++] = strdup(token);
+        if (arg_idx < max_args - 1) {
+          argv[arg_idx++] = strdup(token);
+        }
         t = 0;
       }
     } else {
-      token[t++] = c;
+      if (t < (int)sizeof(token) - 1)
+        token[t++] = c;
     }
   }
   if (t > 0) {
     token[t] = '\0';
-    argv[arg_idx++] = strdup(token);
+    if (arg_idx < max_args - 1)
+      argv[arg_idx++] = strdup(token);
   }
   argv[arg_idx] = NULL;
 }
 
 void handle_pwd() {
-  const char *pwd_env = getenv("PWD");
-  printf("%s\n", pwd_env);
+  char cwd[PATH_MAX];
+  if (getcwd(cwd, sizeof(cwd)) != NULL) {
+    printf("%s\n", cwd);
+  }
 }
 
-void handle_abs_cd(char *path) {
+void handle_cd(char *path) {
+  char cwd[PATH_MAX];
   if (path == NULL || strcmp(path, "") == 0) {
     const char *home_env = getenv("HOME");
-    if (home_env != NULL) {
-      chdir(home_env);
-      setenv("PWD", home_env, 1);
+    if (!home_env) {
       return;
     }
-
-    return;
+    if (chdir(home_env) != 0) {
+      perror("cd");
+      return;
+    }
+  } else {
+    if (chdir(path) != 0) {
+      printf("cd: %s: No such file or directory\n", path);
+      return;
+    }
   }
-  if (chdir(path) != -1) {
-    setenv("PWD", path, 1);
-    return;
+
+  if (getcwd(cwd, sizeof(cwd)) != NULL) {
+    setenv("PWD", cwd, 1);
   }
+}
 
-  printf("cd: %s: No such file or directory\n", path);
-
-  return;
+int is_cmd(const char *input, const char *cmd) {
+  size_t len_of_cmd = strlen(cmd);
+  return strncmp(input, cmd, len_of_cmd) == 0 &&
+         (input[len_of_cmd] == '\0' || input[len_of_cmd] == ' ');
 }
