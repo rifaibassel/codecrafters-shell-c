@@ -12,8 +12,17 @@ void free_argv(char **argv) {
 }
 
 void handle_echo(char *input) {
-
   if (input != NULL) {
+    if (input[5] == '\'') {
+      char *arg = strtok(input, "\'");
+      while (arg != NULL) {
+        arg = strtok(NULL, "\'");
+        handle_single_quote(arg);
+      }
+
+      printf("\n");
+      return;
+    }
     input = strtok(input, " ");
     while (input != NULL) {
       input = strtok(NULL, " ");
@@ -122,7 +131,7 @@ void parse_input(const char *input, char **argv, int max_args) {
   int t = 0;
   for (int i = 0; input[i] != '\0'; ++i) {
     char c = input[i];
-    if (c == '"') {
+    if (c == '"' || c == '\'') {
       in_quote = !in_quote;
     } else if (c == ' ' && !in_quote) {
       if (t > 0) {
@@ -179,4 +188,21 @@ int is_cmd(const char *input, const char *cmd) {
   size_t len_of_cmd = strlen(cmd);
   return strncmp(input, cmd, len_of_cmd) == 0 &&
          (input[len_of_cmd] == '\0' || input[len_of_cmd] == ' ');
+}
+
+/**
+ * We know that the input given starts with a single quote
+ * The function should find the next single quote
+ * Save the index of the closing quote
+ * print the literal to the screen
+ */
+void handle_single_quote(const char *input) {
+  if (input == NULL) {
+    return;
+  }
+  int input_index = 0;
+  while (input[input_index] != '\0') {
+    printf("%c", input[input_index]);
+    input_index++;
+  }
 }
