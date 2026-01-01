@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 int find_path(char *command, char *buffer) {
@@ -35,6 +36,46 @@ int find_path(char *command, char *buffer) {
     path_token = strtok_r(NULL, ": ", &path_var_saveptr);
   }
 
+  return -1;
+}
+
+void get_argv(char *arguments, char **buffer, char *command) {
+  buffer[0] = command;
+  if (arguments != NULL) {
+    char *arg_saveptr;
+    char *arg = strtok_r(arguments, " ", &arg_saveptr);
+    int arg_idx = 1;
+    while (arg != NULL) {
+      buffer[arg_idx] = arg;
+      arg = strtok_r(NULL, " ", &arg_saveptr);
+      arg_idx++;
+    }
+    buffer[arg_idx] = NULL;
+  } else {
+    buffer[1] = NULL;
+  }
+}
+
+int handle_exec(char *command, char *rest_of_command) {
+  char path[1024];
+  if (find_path(command, path) == 1) {
+    pid_t parent_pid = getpid();
+    pid_t child_pid = fork();
+
+    if (child_pid == -1) {
+      perror("fork failed");
+      return -1;
+    } else if (child_pid > 0) {
+      int status;
+      waitpid(child_pid, &status, 0);
+    } else {
+      char *argv[64];
+      get_argv(rest_of_command, argv, command);
+      execv(path, argv);
+    }
+
+    return 1;
+  }
   return -1;
 }
 
@@ -77,7 +118,11 @@ int main(int argc, char *argv[]) {
     } else if (strcmp(command_token, "type") == 0) {
       handle_type(command_saveptr);
     } else {
-      printf("%s: command not found\n", command);
+      if (handle_exec(command, command_saveptr) == 1) {
+        continue;
+      } else {
+        printf("%s: command not found\n", command);
+      }
     }
   } while (1);
 
