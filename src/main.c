@@ -17,8 +17,15 @@ int main(int argc, char *argv[]) {
       exit(EXIT_SUCCESS);
     }
 
-    printf("%s: command not found\n", command);
+    char *command_saveptr;
+    char *command_token = strtok_r(command, " ", &command_saveptr);
 
+    if (strcmp(command_token, "echo") == 0) {
+      char echo_buffer[1024];
+      printf("%s\n", command_saveptr);
+    } else {
+      printf("%s: command not found\n", command);
+    }
   } while (1);
 
   return 0;
