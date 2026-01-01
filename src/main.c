@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
     printf("$ ");
     fgets(command, sizeof(command), stdin);
     command[strcspn(command, "\n")] = '\0';
-    printf("%s: command not found", command);
+    printf("%s: command not found\n", command);
 
   } while (1);
 
