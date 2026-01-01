@@ -6,6 +6,8 @@
 
 int find_path(char *command, char *buffer) {
   const char *path_var = getenv("PATH");
+  if (path_var == NULL)
+    return -1;
   char path_var_dup[1024];
 
   strcpy(path_var_dup, path_var);
@@ -46,6 +48,9 @@ void get_argv(char *arguments, char **buffer, char *command) {
     char *arg = strtok_r(arguments, " ", &arg_saveptr);
     int arg_idx = 1;
     while (arg != NULL) {
+      if (arg_idx >= 63) {
+        break;
+      }
       buffer[arg_idx] = arg;
       arg = strtok_r(NULL, " ", &arg_saveptr);
       arg_idx++;
@@ -72,6 +77,7 @@ int handle_exec(char *command, char *rest_of_command) {
       char *argv[64];
       get_argv(rest_of_command, argv, command);
       execv(path, argv);
+      exit(EXIT_FAILURE);
     }
 
     return 1;
@@ -81,7 +87,7 @@ int handle_exec(char *command, char *rest_of_command) {
 
 void handle_type(char *command) {
   if (strcmp(command, "echo") == 0 || strcmp(command, "exit") == 0 ||
-      strcmp(command, "type") == 0) {
+      strcmp(command, "type") == 0 || strcmp(command, "pwd") == 0) {
     printf("%s is a shell builtin\n", command);
   } else {
     char full_path[1024];
@@ -102,6 +108,8 @@ int main(int argc, char *argv[]) {
     printf("$ ");
     // Get command
     fgets(command, sizeof(command), stdin);
+    if (strcmp(command, "\n") == 0)
+      continue;
     command[strcspn(command, "\n")] = '\0';
 
     // Command is exit without arguments
@@ -111,12 +119,17 @@ int main(int argc, char *argv[]) {
 
     char *command_saveptr;
     char *command_token = strtok_r(command, " ", &command_saveptr);
+    if (command_token == NULL)
+      continue;
 
     if (strcmp(command_token, "echo") == 0) {
       char echo_buffer[1024];
       printf("%s\n", command_saveptr);
     } else if (strcmp(command_token, "type") == 0) {
       handle_type(command_saveptr);
+    } else if (strcmp(command_token, "pwd") == 0) {
+      char *pwd_env = getenv("PWD");
+      printf("%s\n", pwd_env);
     } else {
       if (handle_exec(command, command_saveptr) == 1) {
         continue;
