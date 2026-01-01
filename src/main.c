@@ -32,8 +32,7 @@ int main(int argc, char *argv[]) {
     if (strcmp(command_token, "echo") == 0) {
       char echo_buffer[1024];
       printf("%s\n", command_saveptr);
-    }
-    if (strcmp(command_token, "type") == 0) {
+    } else if (strcmp(command_token, "type") == 0) {
       handle_type(command_saveptr);
     } else {
       printf("%s: command not found\n", command);
