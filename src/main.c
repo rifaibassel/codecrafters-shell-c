@@ -87,7 +87,8 @@ int handle_exec(char *command, char *rest_of_command) {
 
 void handle_type(char *command) {
   if (strcmp(command, "echo") == 0 || strcmp(command, "exit") == 0 ||
-      strcmp(command, "type") == 0 || strcmp(command, "pwd") == 0) {
+      strcmp(command, "type") == 0 || strcmp(command, "pwd") == 0 ||
+      strcmp(command, "cd") == 0) {
     printf("%s is a shell builtin\n", command);
   } else {
     char full_path[1024];
@@ -130,6 +131,12 @@ int main(int argc, char *argv[]) {
     } else if (strcmp(command_token, "pwd") == 0) {
       char *pwd_env = getenv("PWD");
       printf("%s\n", pwd_env);
+    } else if (strcmp(command_token, "cd") == 0) {
+      if (chdir(command_saveptr) == 0) {
+        setenv("PWD", command_saveptr, 1);
+      } else {
+        printf("cd: %s: No such file or directory\n", command_saveptr);
+      }
     } else {
       if (handle_exec(command, command_saveptr) == 1) {
         continue;
