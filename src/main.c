@@ -1,3 +1,4 @@
+#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -101,6 +102,79 @@ void handle_type(char *command) {
   }
 }
 
+void handle_cd(char *command) {
+  if (command == NULL || strcmp(command, "\n") == 0 ||
+      strcmp(command, "") == 0) {
+    chdir(getenv("HOME"));
+    setenv("PWD", getenv("HOME"), 1);
+    return;
+  }
+  char *command_saveptr;
+  char *token = strtok_r(command, "/", &command_saveptr);
+  if (strcmp(token, ".") == 0 || strcmp(token, "..") == 0 ||
+      strcmp(token, "~") == 0) {
+    char *pwd_env = getenv("PWD");
+    char relative_path[1024];
+    if (strcmp(token, ".") == 0) {
+      if (command_saveptr == NULL) {
+        if ((chdir(pwd_env)) == 0) {
+          setenv("PWD", command, 1);
+        } else {
+          printf("cd: %s: No such file or directory\n", command);
+        }
+      }
+      sprintf(relative_path, "%s/%s", pwd_env, command_saveptr);
+      if (chdir(relative_path) == 0) {
+        setenv("PWD", relative_path, 1);
+      } else {
+        printf("cd: %s: No such file or directory\n", relative_path);
+      }
+
+    } else if (strcmp(token, "..") == 0) {
+      // find out if command_saveptr is also ..
+      while (token != NULL && strcmp(token, "..") == 0) {
+        sprintf(relative_path, "%s", dirname(pwd_env));
+        token = strtok_r(NULL, "/", &command_saveptr);
+      }
+      if (chdir(relative_path) == 0) {
+        setenv("PWD", relative_path, 1);
+        return;
+      }
+
+    } else if (strcmp(token, "~") == 0) {
+      char *home_env = getenv("HOME");
+      if (command_saveptr == NULL || strcmp(command_saveptr, "") == 0) {
+        if (chdir(home_env) == 0) {
+          setenv("PWD", home_env, 1);
+        } else {
+          perror("chdir error");
+        }
+      } else {
+        sprintf(relative_path, "%s/%s", home_env, command_saveptr);
+        if (chdir(relative_path) == 0) {
+          setenv("PWD", relative_path, 1);
+        } else {
+          printf("cd: %s: No such file or directory\n", relative_path);
+        }
+      }
+    }
+
+  } else {
+    char non_relative_path[1024];
+    if (strcmp(command_saveptr, "") != 0) {
+      sprintf(non_relative_path, "%s/%s", command, command_saveptr);
+    } else {
+      sprintf(non_relative_path, "%s", command);
+    }
+
+    if (chdir(non_relative_path) == 0) {
+      setenv("PWD", non_relative_path, 1);
+    } else {
+      printf("cd: %s: No such file or directory\n", non_relative_path);
+    }
+  }
+}
+
 int main(int argc, char *argv[]) {
   // Flush after every printf
   setbuf(stdout, NULL);
@@ -132,11 +206,7 @@ int main(int argc, char *argv[]) {
       char *pwd_env = getenv("PWD");
       printf("%s\n", pwd_env);
     } else if (strcmp(command_token, "cd") == 0) {
-      if (chdir(command_saveptr) == 0) {
-        setenv("PWD", command_saveptr, 1);
-      } else {
-        printf("cd: %s: No such file or directory\n", command_saveptr);
-      }
+      handle_cd(command_saveptr);
     } else {
       if (handle_exec(command, command_saveptr) == 1) {
         continue;
