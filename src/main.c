@@ -15,27 +15,39 @@ void parse_command(char *input, char **argv) {
   int quote_mode_flag = 0;
 
   for (int i = 0; i < input_len; i++) {
-    if (input[i] == '\'') {
-      quote_mode_flag = !quote_mode_flag;
-    } else if (input[i] == ' ' && !quote_mode_flag) {
-      if (token_idx > 0) {
-        token[token_idx] = '\0';
-        argv[argv_idx] = strdup(token);
-        argv_idx++;
-        token_idx = 0;
+    if (quote_mode_flag == 1) {
+      if (input[i] == '\'') {
+        quote_mode_flag = 0;
+      } else {
+        token[token_idx++] = input[i];
+      }
+    } else if (quote_mode_flag == 2) {
+      if (input[i] == '\"') {
+        quote_mode_flag = 0;
+      } else {
+        token[token_idx++] = input[i];
       }
     } else {
-      token[token_idx] = input[i];
-      token_idx++;
+      if (input[i] == '\'') {
+        quote_mode_flag = 1;
+      } else if (input[i] == '\"') {
+        quote_mode_flag = 2;
+      } else if (input[i] == ' ') {
+        if (token_idx > 0) {
+          token[token_idx] = '\0';
+          argv[argv_idx++] = strdup(token);
+          token_idx = 0;
+        }
+      } else {
+        token[token_idx++] = input[i];
+      }
     }
   }
 
   if (token_idx > 0) {
     token[token_idx] = '\0';
-    argv[argv_idx] = strdup(token);
-    argv_idx++;
+    argv[argv_idx++] = strdup(token);
   }
-
   argv[argv_idx] = NULL;
 }
 
@@ -60,7 +72,7 @@ int find_path(char *command, char *buffer) {
   strcpy(path_var_dup, path_var);
 
   char *path_var_saveptr;
-  char *path_token = strtok_r(path_var_dup, ": ", &path_var_saveptr);
+  char *path_token = strtok_r(path_var_dup, ":", &path_var_saveptr);
 
   while (path_token != NULL) {
     char full_path[PATH_MAX];
@@ -82,13 +94,16 @@ int find_path(char *command, char *buffer) {
         return 1;
       }
     }
-    path_token = strtok_r(NULL, ": ", &path_var_saveptr);
+    path_token = strtok_r(NULL, ":", &path_var_saveptr);
   }
 
   return -1;
 }
 
 void handle_type(char **argv) {
+  if (argv[1] == NULL) {
+    return;
+  }
   char path[PATH_MAX];
   if (strcmp(argv[1], "echo") == 0 || strcmp(argv[1], "exit") == 0 ||
       strcmp(argv[1], "type") == 0 || strcmp(argv[1], "pwd") == 0) {
@@ -170,8 +185,11 @@ int main(int argc, char *argv[]) {
 
     char *argv[64];
     parse_command(command, argv);
+    if (argv[0] == NULL) {
+      continue;
+    }
     // Command is exit without arguments
-    if (strcmp(command, "exit") == 0) {
+    if (strcmp(argv[0], "exit") == 0) {
       exit(EXIT_SUCCESS);
     } else if (strcmp(argv[0], "echo") == 0) {
       handle_echo(argv);
