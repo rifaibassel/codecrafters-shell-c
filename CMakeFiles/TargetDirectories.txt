@@ -1,0 +1,3 @@
+/home/ahmad/projects/codecrafters/codecrafters-shell-c/CMakeFiles/shell.dir
+/home/ahmad/projects/codecrafters/codecrafters-shell-c/CMakeFiles/edit_cache.dir
+/home/ahmad/projects/codecrafters/codecrafters-shell-c/CMakeFiles/rebuild_cache.dir

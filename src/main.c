@@ -1,15 +1,61 @@
 #include <libgen.h>
+#include <limits.h>
+#include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
+void parse_command(char *input, char **argv) {
+  int argv_idx = 0;
+  int input_len = strlen(input);
+  char token[1024];
+  int token_idx = 0;
+  int quote_mode_flag = 0;
+
+  for (int i = 0; i < input_len; i++) {
+    if (input[i] == '\'') {
+      quote_mode_flag = !quote_mode_flag;
+    } else if (input[i] == ' ' && !quote_mode_flag) {
+      if (token_idx > 0) {
+        token[token_idx] = '\0';
+        argv[argv_idx] = strdup(token);
+        argv_idx++;
+        token_idx = 0;
+      }
+    } else {
+      token[token_idx] = input[i];
+      token_idx++;
+    }
+  }
+
+  if (token_idx > 0) {
+    token[token_idx] = '\0';
+    argv[argv_idx] = strdup(token);
+    argv_idx++;
+  }
+
+  argv[argv_idx] = NULL;
+}
+
+void handle_echo(char **argv) {
+  int argv_idx = 1;
+  while (argv[argv_idx] != NULL) {
+    printf("%s", argv[argv_idx]);
+    if (argv[argv_idx + 1] != NULL) {
+      printf(" ");
+    }
+    argv_idx++;
+  }
+  printf("\n");
+}
+
 int find_path(char *command, char *buffer) {
   const char *path_var = getenv("PATH");
   if (path_var == NULL)
     return -1;
-  char path_var_dup[1024];
+  char path_var_dup[PATH_MAX];
 
   strcpy(path_var_dup, path_var);
 
@@ -17,7 +63,7 @@ int find_path(char *command, char *buffer) {
   char *path_token = strtok_r(path_var_dup, ": ", &path_var_saveptr);
 
   while (path_token != NULL) {
-    char full_path[1024];
+    char full_path[PATH_MAX];
     if (path_token[strlen(path_token) - 1] == '/') {
       strcpy(full_path, path_token);
       strcat(full_path, command);
@@ -42,29 +88,21 @@ int find_path(char *command, char *buffer) {
   return -1;
 }
 
-void get_argv(char *arguments, char **buffer, char *command) {
-  buffer[0] = command;
-  if (arguments != NULL) {
-    char *arg_saveptr;
-    char *arg = strtok_r(arguments, " ", &arg_saveptr);
-    int arg_idx = 1;
-    while (arg != NULL) {
-      if (arg_idx >= 63) {
-        break;
-      }
-      buffer[arg_idx] = arg;
-      arg = strtok_r(NULL, " ", &arg_saveptr);
-      arg_idx++;
-    }
-    buffer[arg_idx] = NULL;
+void handle_type(char **argv) {
+  char path[PATH_MAX];
+  if (strcmp(argv[1], "echo") == 0 || strcmp(argv[1], "exit") == 0 ||
+      strcmp(argv[1], "type") == 0 || strcmp(argv[1], "pwd") == 0) {
+    printf("%s is a shell builtin\n", argv[1]);
+  } else if (find_path(argv[1], path) == 1) {
+    printf("%s is %s\n", argv[1], path);
   } else {
-    buffer[1] = NULL;
+    printf("%s: not found\n", argv[1]);
   }
 }
 
-int handle_exec(char *command, char *rest_of_command) {
-  char path[1024];
-  if (find_path(command, path) == 1) {
+int handle_exec(char **argv) {
+  char path[PATH_MAX];
+  if (find_path(argv[0], path) == 1) {
     pid_t parent_pid = getpid();
     pid_t child_pid = fork();
 
@@ -75,104 +113,47 @@ int handle_exec(char *command, char *rest_of_command) {
       int status;
       waitpid(child_pid, &status, 0);
     } else {
-      char *argv[64];
-      get_argv(rest_of_command, argv, command);
       execv(path, argv);
       exit(EXIT_FAILURE);
     }
-
     return 1;
   }
   return -1;
 }
 
-void handle_type(char *command) {
-  if (strcmp(command, "echo") == 0 || strcmp(command, "exit") == 0 ||
-      strcmp(command, "type") == 0 || strcmp(command, "pwd") == 0 ||
-      strcmp(command, "cd") == 0) {
-    printf("%s is a shell builtin\n", command);
-  } else {
-    char full_path[1024];
-    if (find_path(command, full_path) == 1) {
-      printf("%s is %s\n", command, full_path);
+void handle_cd(char **argv) {
+  const char *home_env = getenv("HOME");
+  char cwd[PATH_MAX];
+  char expanded_path[PATH_MAX];
+  char *target_dir;
 
+  if (argv[1] == NULL || strcmp(argv[1], "") == 0 ||
+      strcmp(argv[1], "~") == 0) {
+    if (chdir(home_env) == 0) {
+      if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        setenv("PWD", cwd, 1);
+      }
+      return;
+    } else {
+      perror("CHDIR failed");
       return;
     }
-    printf("%s: not found\n", command);
   }
-}
 
-void handle_cd(char *command) {
-  if (command == NULL || strcmp(command, "\n") == 0 ||
-      strcmp(command, "") == 0) {
-    chdir(getenv("HOME"));
-    setenv("PWD", getenv("HOME"), 1);
-    return;
-  }
-  char *command_saveptr;
-  char *token = strtok_r(command, "/", &command_saveptr);
-  if (strcmp(token, ".") == 0 || strcmp(token, "..") == 0 ||
-      strcmp(token, "~") == 0) {
-    char *pwd_env = getenv("PWD");
-    char relative_path[1024];
-    if (strcmp(token, ".") == 0) {
-      if (command_saveptr == NULL) {
-        if ((chdir(pwd_env)) == 0) {
-          setenv("PWD", command, 1);
-        } else {
-          printf("cd: %s: No such file or directory\n", command);
-        }
-      }
-      sprintf(relative_path, "%s/%s", pwd_env, command_saveptr);
-      if (chdir(relative_path) == 0) {
-        setenv("PWD", relative_path, 1);
-      } else {
-        printf("cd: %s: No such file or directory\n", relative_path);
-      }
-
-    } else if (strcmp(token, "..") == 0) {
-      // find out if command_saveptr is also ..
-      while (token != NULL && strcmp(token, "..") == 0) {
-        sprintf(relative_path, "%s", dirname(pwd_env));
-        token = strtok_r(NULL, "/", &command_saveptr);
-      }
-      if (chdir(relative_path) == 0) {
-        setenv("PWD", relative_path, 1);
-        return;
-      }
-
-    } else if (strcmp(token, "~") == 0) {
-      char *home_env = getenv("HOME");
-      if (command_saveptr == NULL || strcmp(command_saveptr, "") == 0) {
-        if (chdir(home_env) == 0) {
-          setenv("PWD", home_env, 1);
-        } else {
-          perror("chdir error");
-        }
-      } else {
-        sprintf(relative_path, "%s/%s", home_env, command_saveptr);
-        if (chdir(relative_path) == 0) {
-          setenv("PWD", relative_path, 1);
-        } else {
-          printf("cd: %s: No such file or directory\n", relative_path);
-        }
-      }
-    }
-
+  if (argv[1][0] == '~') {
+    snprintf(expanded_path, sizeof(expanded_path), "%s%s", home_env,
+             argv[1] + 1);
+    target_dir = expanded_path;
   } else {
-    char non_relative_path[1024];
-    if (strcmp(command_saveptr, "") != 0) {
-      sprintf(non_relative_path, "%s/%s", command, command_saveptr);
-    } else {
-      sprintf(non_relative_path, "%s", command);
-    }
-
-    if (chdir(non_relative_path) == 0) {
-      setenv("PWD", non_relative_path, 1);
-    } else {
-      printf("cd: %s: No such file or directory\n", non_relative_path);
+    target_dir = argv[1];
+  }
+  if (chdir(target_dir) == 0) {
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+      setenv("PWD", cwd, 1);
+      return;
     }
   }
+  printf("cd: %s: No such file or directory\n", argv[1]);
 }
 
 int main(int argc, char *argv[]) {
@@ -187,32 +168,24 @@ int main(int argc, char *argv[]) {
       continue;
     command[strcspn(command, "\n")] = '\0';
 
+    char *argv[64];
+    parse_command(command, argv);
     // Command is exit without arguments
     if (strcmp(command, "exit") == 0) {
       exit(EXIT_SUCCESS);
-    }
-
-    char *command_saveptr;
-    char *command_token = strtok_r(command, " ", &command_saveptr);
-    if (command_token == NULL)
+    } else if (strcmp(argv[0], "echo") == 0) {
+      handle_echo(argv);
+    } else if (strcmp(argv[0], "type") == 0) {
+      handle_type(argv);
+    } else if (handle_exec(argv) == 1) {
       continue;
-
-    if (strcmp(command_token, "echo") == 0) {
-      char echo_buffer[1024];
-      printf("%s\n", command_saveptr);
-    } else if (strcmp(command_token, "type") == 0) {
-      handle_type(command_saveptr);
-    } else if (strcmp(command_token, "pwd") == 0) {
-      char *pwd_env = getenv("PWD");
-      printf("%s\n", pwd_env);
-    } else if (strcmp(command_token, "cd") == 0) {
-      handle_cd(command_saveptr);
+    } else if (strcmp(argv[0], "pwd") == 0) {
+      const char *pwd_path = getenv("PWD");
+      printf("%s\n", pwd_path);
+    } else if (strcmp(argv[0], "cd") == 0) {
+      handle_cd(argv);
     } else {
-      if (handle_exec(command, command_saveptr) == 1) {
-        continue;
-      } else {
-        printf("%s: command not found\n", command);
-      }
+      printf("%s: command not found\n", command);
     }
   } while (1);
 
