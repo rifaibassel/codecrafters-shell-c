@@ -24,6 +24,17 @@ void parse_command(char *input, char **argv) {
     } else if (quote_mode_flag == 2) {
       if (input[i] == '\"') {
         quote_mode_flag = 0;
+      } else if (input[i] == '\\') {
+        if (input[i + 1]) {
+          char next_c = input[i + 1];
+          if (next_c == '\"' || next_c == '\\' || next_c == '$' ||
+              next_c == '`' || next_c == '\n') {
+            token[token_idx++] = next_c;
+            i++;
+          } else {
+            token[token_idx++] = '\\';
+          }
+        }
       } else {
         token[token_idx++] = input[i];
       }
