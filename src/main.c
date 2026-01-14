@@ -11,6 +11,7 @@
 typedef struct Command {
   char **argv;
   char *output_file_name;
+  int output_type_flag;
 } Command;
 
 void parse_command(char *input, Command *cmd) {
@@ -53,7 +54,13 @@ void parse_command(char *input, Command *cmd) {
       } else if (input[i] == ' ') {
         if (token_idx > 0) {
           token[token_idx] = '\0';
-          if (strcmp(token, ">") == 0 || strcmp(token, "1>") == 0) {
+          if (strcmp(token, ">") == 0 || strcmp(token, "1>") == 0 ||
+              strcmp(token, "2>") == 0) {
+            if (strcmp(token, "2>")) {
+              cmd->output_type_flag = 2;
+            } else {
+              cmd->output_type_flag = 1;
+            }
             expect_output_flag = 1;
           } else if (expect_output_flag == 1) {
             cmd->output_file_name = strdup(token);
@@ -77,7 +84,13 @@ void parse_command(char *input, Command *cmd) {
 
   if (token_idx > 0) {
     token[token_idx] = '\0';
-    if (strcmp(token, ">") == 0 || strcmp(token, "1>") == 0) {
+    if (strcmp(token, ">") == 0 || strcmp(token, "1>") == 0 ||
+        strcmp(token, "2>") == 0) {
+      if (strcmp(token, "2>") == 0) {
+        cmd->output_type_flag = 2;
+      } else {
+        cmd->output_type_flag = 1;
+      }
       expect_output_flag = 1;
     } else if (expect_output_flag == 1) {
       cmd->output_file_name = strdup(token);
@@ -231,13 +244,19 @@ int main(int argc, char *argv[]) {
 
     int save_fd = -1;
     int output_fd = -1;
+    int input_fd = -1;
 
     if (cmd.output_file_name) {
+      if (cmd.output_type_flag == 2) {
+        input_fd = STDERR_FILENO;
+      } else if (cmd.output_type_flag == 1) {
+        input_fd = STDOUT_FILENO;
+      }
       output_fd =
           open(cmd.output_file_name, O_CREAT | O_WRONLY | O_TRUNC, 0644);
-      save_fd = dup(STDOUT_FILENO);
+      save_fd = dup(input_fd);
 
-      if (dup2(output_fd, STDOUT_FILENO) == -1) {
+      if (dup2(output_fd, input_fd) == -1) {
         perror("dup2");
       }
     }
@@ -259,7 +278,7 @@ int main(int argc, char *argv[]) {
       printf("%s: command not found\n", command);
     }
 
-    dup2(save_fd, STDOUT_FILENO);
+    dup2(save_fd, input_fd);
     close(output_fd);
   } while (1);
 
