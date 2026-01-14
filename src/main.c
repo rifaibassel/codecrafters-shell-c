@@ -38,6 +38,12 @@ void parse_command(char *input, char **argv) {
           argv[argv_idx++] = strdup(token);
           token_idx = 0;
         }
+      } else if (input[i] == '\\') {
+        if (input[i + 1]) {
+          char next_c = input[i + 1];
+          token[token_idx++] = next_c;
+          i++;
+        }
       } else {
         token[token_idx++] = input[i];
       }
