@@ -1,3 +1,4 @@
+#include <fcntl.h>
 #include <libgen.h>
 #include <limits.h>
 #include <linux/limits.h>
@@ -7,12 +8,18 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-void parse_command(char *input, char **argv) {
+typedef struct Command {
+  char **argv;
+  char *output_file_name;
+} Command;
+
+void parse_command(char *input, Command *cmd) {
   int argv_idx = 0;
   int input_len = strlen(input);
   char token[1024];
   int token_idx = 0;
   int quote_mode_flag = 0;
+  int expect_output_flag = 0;
 
   for (int i = 0; i < input_len; i++) {
     if (quote_mode_flag == 1) {
@@ -46,7 +53,14 @@ void parse_command(char *input, char **argv) {
       } else if (input[i] == ' ') {
         if (token_idx > 0) {
           token[token_idx] = '\0';
-          argv[argv_idx++] = strdup(token);
+          if (strcmp(token, ">") == 0 || strcmp(token, "1>") == 0) {
+            expect_output_flag = 1;
+          } else if (expect_output_flag == 1) {
+            cmd->output_file_name = strdup(token);
+            expect_output_flag = 0;
+          } else {
+            cmd->argv[argv_idx++] = strdup(token);
+          }
           token_idx = 0;
         }
       } else if (input[i] == '\\') {
@@ -63,9 +77,16 @@ void parse_command(char *input, char **argv) {
 
   if (token_idx > 0) {
     token[token_idx] = '\0';
-    argv[argv_idx++] = strdup(token);
+    if (strcmp(token, ">") == 0 || strcmp(token, "1>") == 0) {
+      expect_output_flag = 1;
+    } else if (expect_output_flag == 1) {
+      cmd->output_file_name = strdup(token);
+      expect_output_flag = 0;
+    } else {
+      cmd->argv[argv_idx++] = strdup(token);
+    }
   }
-  argv[argv_idx] = NULL;
+  cmd->argv[argv_idx] = NULL;
 }
 
 void handle_echo(char **argv) {
@@ -200,28 +221,46 @@ int main(int argc, char *argv[]) {
       continue;
     command[strcspn(command, "\n")] = '\0';
 
-    char *argv[64];
-    parse_command(command, argv);
-    if (argv[0] == NULL) {
+    Command cmd;
+    cmd.argv = malloc(64 * sizeof(char *));
+    cmd.output_file_name = NULL;
+    parse_command(command, &cmd);
+    if (cmd.argv[0] == NULL) {
       continue;
     }
+
+    int save_fd = -1;
+    int output_fd = -1;
+
+    if (cmd.output_file_name) {
+      output_fd =
+          open(cmd.output_file_name, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+      save_fd = dup(STDOUT_FILENO);
+
+      if (dup2(output_fd, STDOUT_FILENO) == -1) {
+        perror("dup2");
+      }
+    }
+
     // Command is exit without arguments
-    if (strcmp(argv[0], "exit") == 0) {
+    if (strcmp(cmd.argv[0], "exit") == 0) {
       exit(EXIT_SUCCESS);
-    } else if (strcmp(argv[0], "echo") == 0) {
-      handle_echo(argv);
-    } else if (strcmp(argv[0], "type") == 0) {
-      handle_type(argv);
-    } else if (handle_exec(argv) == 1) {
-      continue;
-    } else if (strcmp(argv[0], "pwd") == 0) {
+    } else if (strcmp(cmd.argv[0], "echo") == 0) {
+      handle_echo(cmd.argv);
+    } else if (strcmp(cmd.argv[0], "type") == 0) {
+      handle_type(cmd.argv);
+    } else if (handle_exec(cmd.argv) == 1) {
+    } else if (strcmp(cmd.argv[0], "pwd") == 0) {
       const char *pwd_path = getenv("PWD");
       printf("%s\n", pwd_path);
-    } else if (strcmp(argv[0], "cd") == 0) {
-      handle_cd(argv);
+    } else if (strcmp(cmd.argv[0], "cd") == 0) {
+      handle_cd(cmd.argv);
     } else {
       printf("%s: command not found\n", command);
     }
+
+    dup2(save_fd, STDOUT_FILENO);
+    close(output_fd);
   } while (1);
 
   return 0;
