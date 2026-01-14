@@ -56,7 +56,7 @@ void parse_command(char *input, Command *cmd) {
           token[token_idx] = '\0';
           if (strcmp(token, ">") == 0 || strcmp(token, "1>") == 0 ||
               strcmp(token, "2>") == 0) {
-            if (strcmp(token, "2>")) {
+            if (strcmp(token, "2>") == 0) {
               cmd->output_type_flag = 2;
             } else {
               cmd->output_type_flag = 1;
@@ -258,6 +258,7 @@ int main(int argc, char *argv[]) {
 
       if (dup2(output_fd, input_fd) == -1) {
         perror("dup2");
+        return EXIT_FAILURE;
       }
     }
 
