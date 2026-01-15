@@ -12,6 +12,7 @@ typedef struct Command {
   char **argv;
   char *output_file_name;
   int output_type_flag;
+  int append_flag;
 } Command;
 
 void parse_command(char *input, Command *cmd) {
@@ -62,6 +63,15 @@ void parse_command(char *input, Command *cmd) {
               cmd->output_type_flag = 1;
             }
             expect_output_flag = 1;
+          } else if (strcmp(token, ">>") == 0 || strcmp(token, "1>>") == 0 ||
+                     strcmp(token, "2>>") == 0) {
+            if (strcmp(token, "2>>") == 0) {
+              cmd->output_type_flag = 2;
+            } else {
+              cmd->output_type_flag = 1;
+            }
+            cmd->append_flag = 1;
+            expect_output_flag = 1;
           } else if (expect_output_flag == 1) {
             cmd->output_file_name = strdup(token);
             expect_output_flag = 0;
@@ -92,6 +102,17 @@ void parse_command(char *input, Command *cmd) {
         cmd->output_type_flag = 1;
       }
       expect_output_flag = 1;
+    } else if (strcmp(token, ">>") == 0 || strcmp(token, "1>>") == 0 ||
+               strcmp(token, "2>>") == 0) {
+      if (strcmp(token, "2>>") == 0) {
+        cmd->output_type_flag = 2;
+      } else {
+        cmd->output_type_flag = 1;
+      }
+
+      cmd->append_flag = 1;
+      expect_output_flag = 1;
+
     } else if (expect_output_flag == 1) {
       cmd->output_file_name = strdup(token);
       expect_output_flag = 0;
@@ -252,9 +273,16 @@ int main(int argc, char *argv[]) {
       } else if (cmd.output_type_flag == 1) {
         input_fd = STDOUT_FILENO;
       }
-      output_fd =
-          open(cmd.output_file_name, O_CREAT | O_WRONLY | O_TRUNC, 0644);
       save_fd = dup(input_fd);
+
+      if (cmd.append_flag == 0) {
+        output_fd =
+            open(cmd.output_file_name, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+
+      } else {
+        output_fd =
+            open(cmd.output_file_name, O_CREAT | O_WRONLY | O_APPEND, 0644);
+      }
 
       if (dup2(output_fd, input_fd) == -1) {
         perror("dup2");
